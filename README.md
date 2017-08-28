@@ -123,3 +123,88 @@ same as:
 var server = http.createServer();
 server.on('request', function(request, response){...}); // This is houw we add event listeners
 ```
+
+## 3.1 Streams
+
+## 4.1 Modules
+#### Create our own module
+*in custom_hello.js*
+```js
+var hello = function() {
+  console.log("hello!");
+}
+module.exports = hello; // export defines what require returns
+```
+*in app.js*
+```js
+var hello = require('./custom_hello'); // "./" look in same directory
+
+hello(); // "hello!"
+```
+Another one:
+*in custom_goodbye.js*
+```js
+exports.goodbye = function() {
+  console.log("bye!");
+}
+```
+*back in app.js*
+```js
+...
+var gb = require('./custom_goodbye');
+
+gb.goodbye(); // "bye!"
+...
+```
+
+#### Making HTTP Requests
+*in make_request.js*
+```js
+var http = require('http');
+
+var make Request = function(message){
+  var message = message;
+  var options = {
+    host: 'localhost',
+    port: 8080,
+    path: '/',
+    method: 'POST'
+  };
+
+  var request = http.request(options, function(response){
+    response.on('data', function(data){
+      console.log(data); // logs response body
+    });
+  });
+  request.write(message); // begins request
+  request.end(); // finishes request
+}
+
+// makeRequest("Here's looking at you, kid."); // invoke
+module.exports = makeRequest;
+```
+*in app.js*
+```js
+var makeRequest = require('./make_request');
+
+makeRequest("Here's looking at you, kid");
+makeRequest("Hello, this is dog");
+```
+
+#### Require Search
+```
+var make_request = require('./make_request'); // looks in same directory
+var make_request = require('../make_request'); // looks in parent directory
+var make_request = require('/Users/eric/nodes/make_request');
+
+var make_request = require('make_request'); // searches for closest node_modules directory
+```
+
+#### Installing a npm module
+*in /Home/my_app*
+```
+$ npm install request // installs into local node_modules directory (/Home/my_app/node_modules/request)
+```
+
+#### Local vs Global
+Global npm modules can't be required inside an application.
