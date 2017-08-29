@@ -75,6 +75,84 @@ http.createServer(function(request, response){
 }).listen(8080);
 ```
 
+## 1.2 Hello You - Challenge
+*in app.js*
+```js
+var http = require('http');
+
+http.createServer(function(request, response){
+  response.writeHead(200); // 1/3 Tell the response which status it should have
+  response.write("Hello, this is <your name here>"); // 2/3 Write a message to the response body
+  response.end(); // 3/3 Tell the response to end so the client on the other side knows it has received all the data.
+}).listen(8000);
+```
+## 1.3 Convert Blocking - Challenge
+*in file_read.js*
+```js
+var fs = require('fs');
+
+// var contents = fs.readFileSync('index.html');
+fs.readFile('index.html', function(error, contents){ // 3/3 Remove the contents var declaration and move console.log() inside the callback.
+  // 2/3 Add a callback method to the readFile call with the parameters error and contents.
+  console.log(contents);
+}); // 1/3 Start by changing the call from readFileSync to readFile
+```
+
+## 1.4 Running Your Code - Challenge
+```
+$ node file_read.js // Run the file
+```
+
+## 1.5 Read File in Server - Challenge
+*in app.js*
+```js
+var http = require('http');
+var fs = require('fs');
+
+http.createServer(function(request, response){
+  response.writeHead(200);
+  fs.readFile('index.html', function(error, contents){ // 1/3 Add call to fs.readFile() that reads 'index.html' asynchronously. Pass in a callback that accepts an error and contents parameter.
+    response.write(contents); // 2/3 Now that you have the contents, write it to the response.
+    response.end(); // 3/3 End the response after the file contents have been written.
+  });
+}).listen(8080);
+```
+## 1.6 Issuing a request - Challenge
+```
+& curl http://localhost:8080 // Issue a request and see the server respond with the contents of index.html
+```
+
+## 1.7 Writing Response Headers - Challenge
+*in app.js*
+```js
+var http = require('http');
+var fs = require('fs');
+
+http.createServer(function(request, response){
+  response.writeHead(200, {
+    "Content-Type" : "text/html" // Add a Content-Type of text/html to the response
+  });
+
+  fs.readFile('index.html', function(err, contents){
+    response.write(contents);
+    response.end();
+  });
+}).listen(8080);
+```
+
+## 1.8 Response End - Challenge
+*in app.js*
+```js
+var http = require('http');
+
+http.createServer(function(request, response){
+  response.writeHead(200);
+  // response.write("Hello, this is dog"); 2/2 Remove call to response.write()
+  response.end("Hello, this is dog"); // 1/2 Pass the content of response.write to response.end
+}).listen(8080);
+```
+---
+
 ## 2.1 events
 
 ### Events in the DOM - Events in Node
@@ -124,10 +202,249 @@ var server = http.createServer();
 server.on('request', function(request, response){...}); // This is houw we add event listeners
 ```
 
-## 3.1 Streams
+## 2.2 Chat Emitter - Challenge
+*in chat.js*
+```js
+var events = require('events');
+var EventEmitter = events.EventEmitter;
 
+var chat = new EventEmitter(); // 1/3 Create a new EventEmitter object and assign it to a variable called 'chat'.
+chat.on('message', function(message){ // 2/3 Listen to the 'message' event and add a callback that accepts the message parameter.
+  console.log(message); // 3/3 Log the message to the console.
+});
+```
+
+## 2.3 Emitting Events - Challenge
+*in app.js*
+```js
+var events = require('events');
+var EventEmitter = events.EventEmitter;
+
+var chat = new EventEmitter();
+var users = [], chatlog = [];
+
+chat.on('message', function(message){
+  chatlog.push(message);
+});
+
+chat.on('join', function(nickname){
+  users.push(nickname);
+});
+
+// Emit events here
+chat.emit('join', "My awesome message"); // 1/2 Emit the 'join' event on the chat object and pass in a custom message as a string.
+chat.emit('message', "Whatever"); // 2/2 Emit the 'message' event on the chat object and pass in a custom message as a string.
+```
+
+## 2.4 Request Events - Challenge
+*in app.js*
+```js
+var http = require('http');
+
+var server = http.createServer();
+server.on('request', function(request, response){ // Add an event listener on the server variable that listens to the request event. The event listener should take a callback with two arguments, request and response.
+  response.writeHead(200);
+  response.write("Hello, this is dog");
+  response.end();
+});
+
+server.listen(8080);
+```
+
+## 2.5 Listening Twice - Challenge
+*in app.js*
+```js
+var http = require('http');
+
+var server = http.createServer();
+server.on('request', function(request, response){
+  response.writeHead(200);
+  response.write("Hello, this is dog");
+  response.end();
+});
+server.on('request', function(request, response){ // 1/2 Add a second 'request' handler to the HTTP server.
+  console.log("New request coming in..."); // 2/2 Inside the new handler, log the message "New request coming in...".
+});
+server.listen(8080);
+```
+
+## 2.6 Listening for Close - Challenge
+*in app.js*
+```js
+var http = require('http');
+var server = http.createServer();
+
+server.on('request', function(request, response) {
+  response.writeHead(200);
+  response.write("Hello, this is dog");
+  response.end();
+});
+
+server.on('request', function(request, response) {
+  console.log("New request coming in...");
+});
+
+server.on('close', function(){ // 1/2 Listen for the 'close' event on the server. The event should take a callback that accepts no parameters.
+  console.log("Closing down the server..."); // 2/2 Inside the callback, log the message "Closing down the server...".
+});
+
+server.listen(8080);
+```
+---
+## 3.1 Streams
+### What are Streams
+Access the data piece by piece / chunk by chunk.
+They are like channels, where data can simply flow through.
+
+Two most common types of streams:
+1. Readable
+2. Writeable
+
+### Streaming Response
+The request object is a readable stream, the response a writeable.
+
+### How To Read From The Request
+The request object inherits from EventEmitter. The request object can communicate with other objects through firing events. The events fired are readable; which is fired when data is ready to be consumed. And end; which is fired when the client is done sending all the data.
+
+To print what is receivend from the request:
+```js
+http.createServer(function(req, res){
+  response.writeHead(200);
+  request.on('readable', function(){
+    var chunk = null;
+    while (null !== (chunk = request.read())) {
+      //console.log(chunk.toString()); // because chunks are buffered
+      response.write(chunk);
+    }
+  });
+  request.on('end', function(){
+    response.end();
+  });
+}).listen(8080);
+
+/* or when all it needs to do is write to a writeable from a readable stream, node offers a helper function to pipe these operations together: .pipe() */
+http.createServer(function(req, res){
+  response.writeHead(200);
+  request.pipe(response);
+}).listen(8080);
+```
+
+### Reading and Writing a file
+```js
+var fs = require('fs'); // require filesystem module
+
+var file = fs.createReadStream("readme.md");
+var newFile = fs.createWriteStream("readme_copy.md");
+
+file.pipe(newFile);
+```
+
+### Upload a file
+```
+var fs = require('fs');
+var http = require('http');
+
+http.createServer(function(req, res){
+  var newFile = fs.createWriteStream("readme_copy.md");  
+  request.pipe(newFile);
+  request.on('end', function(){
+      response.end('uploaded!');
+  });
+}).listen(8080);
+```
+To call:
+```
+$ curl --upload-file readme.md http://localhost:8080
+```
+
+### File Uploading Progress
+```js
+var fs = require('fs');
+var http = require('http');
+
+http.createServer(function(req, res){
+  var newFile = fs.createWriteStream("readme_copy.md");  
+  var fileBytes = request.headers['content-length'];
+  var uploadBytes = 0;
+  request.on('readable', function(){
+    var chunk = null;
+    while(null !== (chunk = request.read())){
+      uploadedBytes += chunk.length;
+      var progress = (uploadedBytes / fileBytes) * 100;
+      response.write("progress: " + parseInt(progress, 10) + "%\n");
+    }
+  });
+
+  request.pipe(newFile);
+  request.on('end', function(){
+      response.end('uploaded!');
+  });
+}).listen(8080);
+```
+
+## 3.2 File Read Stream - Challenge
+*in app.js*
+```js
+var fs = require('fs');
+
+var file = fs.createReadStream("fruits.txt"); // 1/3 Use the fs module to create a Readable stream for fruits.txt. Store the new stream in a variable called file.
+file.on('readable', function(){ // 2/3 Listen to the 'readable' event on the newly created stream and give it a callback.
+  var chunk = null; // 3/3 Inside the callback, read the data chunks from the stream and print them to the console using a while loop.
+  while(null !== (chunk = file.read())){
+    console.log(chunk.toString());
+  }
+});
+```
+
+### 3.3 File Piping - Challenge
+*in app.js*
+```js
+var fs = require('fs');
+
+var file = fs.createReadStream('fruits.txt');
+
+/* file.on('readable', function(){
+  var chunk;
+  while(null !== (chunk = file.read())){
+    console.log(chunk.toString());
+  }
+}); 1/2 Remove the code for the readable handler */
+
+file.pipe(process.stdout); // 2/2 Call file.pipe passing it to process.stdout.
+```
+
+### 3.4 Fixing Pipe - Challenge
+*in app.js*
+```js
+var fs = require('fs');
+
+var file = fs.createReadStream('origin.txt');
+var destFile = fs.createWriteStream('destination.txt');
+
+file.pipe(destFile, { end: false }); // Consult the pipe documentation to keep the write stream open and dispatches the end event.
+
+file.on('end', function(){
+  destFile.end('Finished!');
+});
+```
+
+### 3.5 Download Server - Challenge
+*in app.js*
+```js
+var fs = require('fs');
+var http = require('http');
+
+http.createServer(function(request, response) {
+  response.writeHead(200, {'Content-Type': 'text/html'});
+
+  var file = fs.createReadStream('index.html');
+  file.pipe(response); // Use pipe() to send index.html to the response
+}).listen(8080);
+```
+
+---
 ## 4.1 Modules
-#### Create our own module
+### Create our own module
 *in custom_hello.js*
 ```js
 var hello = function() {
@@ -157,7 +474,7 @@ gb.goodbye(); // "bye!"
 ...
 ```
 
-#### Making HTTP Requests
+### Making HTTP Requests
 *in make_request.js*
 ```js
 var http = require('http');
@@ -191,7 +508,7 @@ makeRequest("Here's looking at you, kid");
 makeRequest("Hello, this is dog");
 ```
 
-#### Require Search
+### Require Search
 ```
 var make_request = require('./make_request'); // looks in same directory
 var make_request = require('../make_request'); // looks in parent directory
@@ -200,11 +517,102 @@ var make_request = require('/Users/eric/nodes/make_request');
 var make_request = require('make_request'); // searches for closest node_modules directory
 ```
 
-#### Installing a npm module
+### Installing a npm module
 *in /Home/my_app*
 ```
 $ npm install request // installs into local node_modules directory (/Home/my_app/node_modules/request)
 ```
 
-#### Local vs Global
+### Local vs Global
 Global npm modules can't be required inside an application.
+
+## 4.2 Missing Exports - Challenge
+*in high_five.js*
+```js
+var highfive = function() {
+  console.log("smack!!");
+};
+module.exports = highfive; // Add the proper exports line to have a successful high five!
+```
+## 4.3 Export a function - Challenge
+*in app.js*
+```js
+var myRequest = require('my_request'); // 3/3 Require the my_request.js module in app.js.
+
+myRequest('Hello, this is dog.');
+```
+*in my_request.js*
+```js
+// 1/3 Move the myRequest function and the http require into my_request.js
+var http = require('http');
+
+var myRequest = function(message) {
+  var request = http.request('http://codeschool.com', function(response) {
+    response.pipe(process.stdout, { end: false });
+  });
+
+  request.write(message);
+  request.end();
+};
+module.exports = myRequest; // 2/3 Export the myRequest function.
+```
+## 4.4 Exporting An Object - Challenge
+*in logger.js*
+```js
+module.exports.warn = function(message) { // 2/3 Export the warn function so we can use it in app.js by assigning it to the exports object.
+  console.log("Warning: " + message);
+};
+
+module.exports.info = function(message) { // 1/3 Export the info function so we can use it in app.js by assigning it to the exports object.
+  console.log("Info: " + message);
+};
+
+exports.error = function(message) { // 3/3 Export the error function so we can use it in app.js by assigning it to the exports object.
+  console.log("Error: " + message);
+};
+```
+*in app.js*
+```js
+var logger = require('./logger');
+
+logger.info('This is some information');
+logger.warn('something bad is happening');
+```
+## 4.5 Installing Local Modules - Challenge
+```
+$ npm install underscore // Install the npm module underscore
+```
+## 4.6 Installing Global Modules - Challenge
+```
+$ npm install coffee-script -g // Install the npm module coffee-script globally
+```
+## 4.7 Dependency - Challenge
+*in package.json*
+```json
+{
+  "name": "My Awesome Node App",
+  "version": "1",
+  "dependencies": {
+        "connect": "2.1.1",
+        "//": "1/2 Add the connect dependency",
+        "underscore": "1.3.3",
+        "//": "2/2 Add the underscore dependency"
+  }
+}
+```
+## 4.8 Semantic Versioning - Challenge
+*in package.json*
+```json
+{
+  "name": "My Awesome Node App",
+  "version": "1",
+  "dependencies": {
+    "connect": "~2.2.1",
+    "//": "1/2 Update the connect version to fetch the latest patch-level changes",
+    "underscore": "~1.3.3",
+    "//": "1/2 Update the underscore version to fetch the latest patch-level changes"
+  }
+}
+```
+---
+## 5.1 Express
