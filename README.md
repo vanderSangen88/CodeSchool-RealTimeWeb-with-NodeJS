@@ -616,3 +616,206 @@ $ npm install coffee-script -g // Install the npm module coffee-script globally
 ```
 ---
 ## 5.1 Express
+A "Sinatra inspired web development framework for Node.js -- insanely fast, flexible and simple".
+- Easy route URLs to callbacks
+- Middleware (from Connect)
+- Environment based configuration
+- Redirection helpers
+- File Uploads
+
+### Introducing Express
+```node
+$ npm install --save express
+```
+```js
+var express = require('express');
+var app = express();
+
+app.get('/', function(req, res){
+  response.sendFile(__dirname + "index.html"); // __dirname = current directory
+});
+app.listen(8080);
+```
+```node
+$ curl http://localhost:8080/
+```
+
+### Express Routes
+Create an endpoint where a twitterusername can been send in, get the latest 10 tweets and display them.
+*in app.js*
+```js
+var request = require('request');
+var url = require('url');
+
+app.get('/tweets/:username', function(req, res){
+  var username = req.params.username;
+
+  // Get last 10 tweets for screen_name
+  options = {
+    protocol: "http:",
+    host: 'api.twitter.com',
+    pathname: '/1/statuses/user_timeline.json',
+    query: { screen_name: username, count: 10 }
+  }
+
+  var twitterUrl = url.format(options);
+  // Pipe request to response
+  request(twitterUrl).pipe(res);
+});
+```
+```node
+// Start nodeserver
+$ node app.js
+// Get Data
+$ curl -s http://localhost:8080/tweets/eallam
+// To beautify json:
+$ npm install prettyjson -g
+// Get Data Again
+$ curl -s http://localhost:8080/tweets/eallam | prettyjson
+```
+Instead of printing it to the response, print it to the browsers through templatess:
+*in my_app/package.json*
+```json
+"dependencies": {
+  "express": "4.9.6",
+  "ejs": "1.0.0"
+}
+```
+```node
+$ npm install --save ejs // Embedded JavaScript
+```
+The default template directory is /Home/eric/my_app/views
+
+*back in app.js*
+```js
+app.get('/tweets/:username', function(req, res){
+  ...
+  // Pipe request to response
+  // request(twitterUrl).pipe(res);
+  request(url, function(err, res, body){
+    var tweets = JSON.parse(body);
+    response.locals = { tweets: tweets, name: username };
+    response.render('tweets.ejs');
+  });
+});
+```
+*in tweets.ejs*
+```html
+<h1>Tweets for @<%= name %></h1>
+<ul>
+  <% tweets.forEach(function(tweet){ %>
+    <li><%= tweet.text %></li>
+  <% }); %>
+</ul>
+```
+
+## 5.2 Express Routes - Challenge
+*in app.js*
+```js
+var express = require('express');
+var app = express();
+
+app.get('/tweets', function(req, res){ // 1/3 Create a GET route for '/tweets' and give it the proper callback which accepts two parameters: the request and response.
+  res.sendFile(__dirname + "/tweets.html"); // 2/3 Send back the file tweets.html which lives under the project's root path. Remember to use __dirname to locate tweets.html.
+});
+app.listen(8080); // 3/3 Have the express app listen on port 8080
+```
+
+## 5.3 Route Params - Challenge
+*in app.js*
+```js
+var express = require('express');
+var app = express();
+
+var quotes = {
+  'einstein': 'Life is like riding a bicycle. To keep your balance you must keep moving',
+  'berners-lee': 'The Web does not just connect machines, it connects people',
+  'crockford': 'The good thing about reinventing the wheel is that you can get a round one',
+  'hofstadter': 'Which statement seems more true: (1) I have a brain. (2) I am a brain.'
+};
+
+app.get('/quotes/:name', function(req, res){ // 1/2 Create a route for '/quotes' that takes a name parameter as part of the URL path.
+
+  // 2/2 Use the name parameter from the URL to retrieve a quote from the quotes object and write it out to the response.
+  var name = req.params.name;
+  res.end(quotes[name]);
+});
+app.listen(8080);
+```
+## 5.4 Rendering - Challenge
+*in app.js*
+```js
+var express = require('express');
+var app = express();
+
+var quotes = {
+  'einstein': 'Life is like riding a bicycle. To keep your balance you must keep moving',
+  'berners-lee': 'The Web does not just connect machines, it connects people',
+  'crockford': 'The good thing about reinventing the wheel is that you can get a round one',
+  'hofstadter': 'Which statement seems more true: (1) I have a brain. (2) I am a brain.'
+};
+
+app.get('/quotes/:name', function(req, res) {
+  var quote = quotes[req.params.name];
+  res.render('quote.ejs', { // 1/3 Render the quote.ejs template to the response
+    name: req.params.name,
+    quote: quote
+  }); // 2/3 Make the name and the quote data available to the template
+});
+app.listen(8080);
+```
+*in views/quote.ejs*
+```html
+<!-- 3/3 Add the data to the template -->
+<h2>Quote by <%= name %></h2>
+
+<blockquote>
+  <%= quote %>
+</blockquote>
+```
+
+## 5.5 URL Building - Challenge
+*in app.js*
+```js
+var url = require('url');
+
+options = {
+  // add URL options here
+  protocol: "http:",
+  host: "search.twitter.com",
+  pathname: "/search.json",
+  query: { q: "codeschool" }
+};
+
+var searchURL = url.format(options);
+console.log(searchURL);
+```
+## 5.6 Doing the Request
+*in app.js*
+```js
+var url = require('url');
+
+var options = {
+  protocol: "http:",
+  host: "search.twitter.com",
+  pathname: '/search.json',
+  query: { q: "codeschool"}
+};
+
+var searchURL = url.format(options);
+var request = require('request'); // 1/3 Require the request module and assign the return function to a variable.
+request(searchURL, function(err, res, body){ // 2/3 Issue a request to searchURL. the callback function takes three parameters: error, response and body.
+  console.log(body); // 3/3 Log the response body to the console.
+});
+```
+## 5.7 Express Server
+*in app.js*
+```js
+var express = require('express'); // 1/5 Require the express module
+var app = express(); // 2/5 Create the Express server and name it app.
+
+app.get('/', function(req, res){ // 3/5 Create a route for GET requests to /
+  request(searchURL).pipe(res); // 4/5 Issue a request to searchURL and pipe the results into the response.
+});
+app.listen(8080); // 5/5 Tell app to listen on port 8080
+```
